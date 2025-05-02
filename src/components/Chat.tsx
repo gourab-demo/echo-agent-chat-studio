@@ -81,10 +81,45 @@ const Chat: React.FC = () => {
   // Handle WebSocket messages
   const handleWebSocketMessage = useCallback((event: MessageEvent) => {
     try {
-      const data: WebSocketMessage = JSON.parse(event.data);
+      const data = JSON.parse(event.data);
+      console.log("WebSocket message received:", data);
       
-      // Handle different message types
-      if (data.type === "agent_message") {
+      // Handle the new response format
+      if (data.type === "result" && data.data && data.data.task_result) {
+        const resultMessages = data.data.task_result.messages;
+        
+        if (Array.isArray(resultMessages) && resultMessages.length > 0) {
+          // Find the assistant message(s)
+          const assistantMessages = resultMessages.filter(
+            msg => msg.source === "assistant_agent" && msg.content
+          );
+          
+          if (assistantMessages.length > 0) {
+            // Extract content from each assistant message
+            assistantMessages.forEach(assistantMsg => {
+              // Clean up the content (remove TERMINATE if present)
+              let cleanContent = assistantMsg.content;
+              if (typeof cleanContent === 'string') {
+                cleanContent = cleanContent.replace(/\s*\n*TERMINATE\.\s*$/, '').trim();
+              }
+              
+              const agentMessage: Message = {
+                role: "agent",
+                content: cleanContent,
+                timestamp: new Date(),
+                status: "success",
+              };
+              
+              // Remove any loading messages and add the new agent message
+              setMessages(prev => {
+                const withoutLoading = prev.filter(msg => msg.status !== "loading");
+                return [...withoutLoading, agentMessage];
+              });
+            });
+          }
+        }
+      } else if (data.type === "agent_message") {
+        // Handle legacy format for backward compatibility
         const agentMessage: Message = {
           role: "agent",
           content: data.content,

@@ -7,10 +7,25 @@ export interface Message {
 }
 
 export interface WebSocketMessage {
-  type: "user_message" | "agent_message" | "status";
-  content: string;
+  type: "user_message" | "agent_message" | "status" | "result";
+  content?: string;
   timestamp?: string;
   metadata?: Record<string, any>;
+  data?: {
+    task_result?: {
+      messages?: Array<{
+        source: string;
+        content: string;
+        type: string;
+        models_usage?: Record<string, any>;
+        metadata?: Record<string, any>;
+      }>;
+      stop_reason?: string;
+    };
+    usage?: string;
+    duration?: number;
+  };
+  status?: string;
 }
 
 export interface ChatSession {
