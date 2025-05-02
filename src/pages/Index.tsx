@@ -9,7 +9,7 @@ const Index = () => {
         <header className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Echo Agent Chat Studio</h1>
           <p className="text-gray-600">
-            Interact with your FastAPI-powered Echo Agent through this chat interface
+            WebSocket-powered chat interface connecting to your Echo Agent API
           </p>
         </header>
         
@@ -19,10 +19,10 @@ const Index = () => {
         
         <footer className="mt-6 text-center text-sm text-gray-500">
           <p>
-            Connect to your FastAPI backend at <code className="bg-gray-100 px-2 py-0.5 rounded">http://localhost:8000</code>
+            Connecting to API at <code className="bg-gray-100 px-2 py-0.5 rounded">http://localhost:8081/api</code>
           </p>
           <p className="mt-1">
-            Make sure to set the <code className="bg-gray-100 px-2 py-0.5 rounded">AUTOGENSTUDIO_TEAM_FILE</code> environment variable for the API
+            WebSocket URL: <code className="bg-gray-100 px-2 py-0.5 rounded">ws://localhost:8081/api/ws/runs/:runId?token=null</code>
           </p>
         </footer>
       </div>

@@ -1,24 +1,22 @@
 
 import React from "react";
-import { MessageCircle } from "lucide-react";
 
-const ChatHeader = () => {
+interface ChatHeaderProps {
+  connected?: boolean;
+}
+
+const ChatHeader: React.FC<ChatHeaderProps> = ({ connected = false }) => {
   return (
-    <div className="flex items-center justify-between p-4 border-b border-gray-200">
-      <div className="flex items-center space-x-3">
-        <div className="bg-echo-secondary p-2 rounded-full">
-          <MessageCircle className="h-5 w-5 text-white" />
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold text-gray-800">Echo Agent Chat Studio</h1>
-          <p className="text-sm text-gray-500">Ask the agent to complete tasks</p>
+    <div className="border-b border-gray-200 p-4 bg-white rounded-t-lg flex justify-between items-center">
+      <div className="flex items-center">
+        <h2 className="font-semibold text-lg">Echo Agent</h2>
+        <div className="flex items-center ml-3">
+          <div className={`h-2 w-2 rounded-full mr-2 ${connected ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+          <span className="text-xs text-gray-500">{connected ? 'Connected' : 'Disconnected'}</span>
         </div>
       </div>
-      <div className="flex items-center">
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-          <span className="w-2 h-2 mr-1 bg-green-400 rounded-full"></span>
-          Online
-        </span>
+      <div className="text-sm text-gray-500">
+        <span>WebSocket Chat</span>
       </div>
     </div>
   );
