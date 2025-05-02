@@ -25,7 +25,7 @@ export interface Run {
   user_id: string;
 }
 
-const API_URL = 'http://localhost:8081/api'; // Change this to match your server URL
+const API_URL = 'http://localhost:8081/api'; // Backend API URL
 
 // Create a new session
 export const createSession = async (userId: string = "guestuser@gmail.com"): Promise<Session> => {
