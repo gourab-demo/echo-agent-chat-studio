@@ -159,6 +159,14 @@ const Chat: React.FC = () => {
         websocket: ws,
         connected: true
       }));
+      
+      // Send initial message as soon as the connection is established
+      if (teamConfig) {
+        const initialMessage = formatWebSocketMessage("Hello", teamConfig.component);
+        ws.send(JSON.stringify(initialMessage));
+        
+        console.log("Sent initial message to establish proper connection");
+      }
     };
 
     ws.onmessage = handleWebSocketMessage;
@@ -180,7 +188,7 @@ const Chat: React.FC = () => {
         connected: false
       }));
     };
-  }, [toast, handleWebSocketMessage]);
+  }, [toast, handleWebSocketMessage, teamConfig]);
 
   // Send message via WebSocket
   const sendMessageViaWebSocket = (ws: WebSocket, content: string) => {
