@@ -3,16 +3,16 @@ import React, { useState, useEffect, useCallback } from "react";
 import ChatHeader from "./ChatHeader";
 import ChatContainer from "./ChatContainer";
 import ChatInput from "./ChatInput";
-import { Message, ChatSession, WebSocketMessage } from "@/types/chat";
+import { Message, ChatSession } from "@/types/chat";
 import { 
   createSession, 
   createRun, 
-  createWebSocket, 
-  formatWebSocketMessage, 
   fetchTeamConfig,
   TeamConfig 
 } from "@/services/chatService";
 import { useToast } from "@/hooks/use-toast";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { processWebSocketMessage } from "@/services/messageProcessingService";
 
 const Chat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -26,6 +26,46 @@ const Chat: React.FC = () => {
   });
   const [teamConfig, setTeamConfig] = useState<TeamConfig | null>(null);
   const { toast } = useToast();
+
+  // Handle WebSocket messages
+  const handleWebSocketMessage = useCallback((event: MessageEvent) => {
+    const processedMessage = processWebSocketMessage(event);
+    
+    if (processedMessage) {
+      // Remove any loading messages and add the new agent message
+      setMessages(prev => {
+        const withoutLoading = prev.filter(msg => msg.status !== "loading");
+        return [...withoutLoading, processedMessage];
+      });
+    }
+  }, []);
+
+  // Handle WebSocket errors
+  const handleWebSocketError = useCallback((error: Event) => {
+    console.error("WebSocket error:", error);
+    toast({
+      title: "Connection Error",
+      description: "WebSocket connection error",
+      variant: "destructive",
+    });
+  }, [toast]);
+
+  // Initialize WebSocket connection
+  const [wsState, sendMessageViaWebSocket] = useWebSocket({
+    runId: chatSession.runId,
+    teamConfig,
+    onMessage: handleWebSocketMessage,
+    onError: handleWebSocketError
+  });
+
+  // Update chat session with WebSocket state
+  useEffect(() => {
+    setChatSession(prev => ({
+      ...prev,
+      websocket: wsState.websocket,
+      connected: wsState.connected
+    }));
+  }, [wsState]);
 
   // Initialize chat session
   useEffect(() => {
@@ -83,125 +123,7 @@ const Chat: React.FC = () => {
     };
 
     initializeSession();
-
-    // Cleanup function
-    return () => {
-      if (chatSession.websocket) {
-        chatSession.websocket.close();
-      }
-    };
   }, [toast]); // Only run once on component mount
-
-  // Handle WebSocket messages
-  const handleWebSocketMessage = useCallback((event: MessageEvent) => {
-    try {
-      const data = JSON.parse(event.data);
-      console.log("WebSocket message received:", data);
-      
-      // Handle the new response format
-      if (data.type === "result" && data.data && data.data.task_result) {
-        const resultMessages = data.data.task_result.messages;
-        
-        if (Array.isArray(resultMessages) && resultMessages.length > 0) {
-          // Find the assistant message(s)
-          const assistantMessages = resultMessages.filter(
-            msg => msg.source === "assistant_agent" && msg.content
-          );
-          
-          if (assistantMessages.length > 0) {
-            // Extract content from each assistant message
-            assistantMessages.forEach(assistantMsg => {
-              // Clean up the content (remove TERMINATE if present)
-              let cleanContent = assistantMsg.content;
-              if (typeof cleanContent === 'string') {
-                cleanContent = cleanContent.replace(/\s*\n*TERMINATE\.\s*$/, '').trim();
-              }
-              
-              const agentMessage: Message = {
-                role: "agent",
-                content: cleanContent,
-                timestamp: new Date(),
-                status: "success",
-              };
-              
-              // Remove any loading messages and add the new agent message
-              setMessages(prev => {
-                const withoutLoading = prev.filter(msg => msg.status !== "loading");
-                return [...withoutLoading, agentMessage];
-              });
-            });
-          }
-        }
-      } else if (data.type === "agent_message") {
-        // Handle legacy format for backward compatibility
-        const agentMessage: Message = {
-          role: "agent",
-          content: data.content,
-          timestamp: new Date(),
-          status: "success",
-        };
-        setMessages(prev => [...prev, agentMessage]);
-      } else if (data.type === "status") {
-        // Handle status updates if needed
-        console.log("Status update:", data);
-      }
-    } catch (error) {
-      console.error("Error processing WebSocket message:", error);
-    }
-  }, []);
-
-  // Set up WebSocket event handlers
-  const setupWebSocket = useCallback((ws: WebSocket) => {
-    ws.onopen = () => {
-      console.log("WebSocket connection established");
-      setChatSession(prev => ({
-        ...prev,
-        websocket: ws,
-        connected: true
-      }));
-      
-      // Send initial message as soon as the connection is established
-      if (teamConfig) {
-        const initialMessage = formatWebSocketMessage("Hello", teamConfig.component);
-        ws.send(JSON.stringify(initialMessage));
-        
-        console.log("Sent initial message to establish proper connection");
-      }
-    };
-
-    ws.onmessage = handleWebSocketMessage;
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      toast({
-        title: "Connection Error",
-        description: "WebSocket connection error",
-        variant: "destructive",
-      });
-    };
-
-    ws.onclose = () => {
-      console.log("WebSocket connection closed");
-      setChatSession(prev => ({
-        ...prev,
-        websocket: null,
-        connected: false
-      }));
-    };
-  }, [toast, handleWebSocketMessage, teamConfig]);
-
-  // Send message via WebSocket
-  const sendMessageViaWebSocket = (ws: WebSocket, content: string) => {
-    if (!teamConfig) {
-      console.error("Team configuration not available");
-      return;
-    }
-    
-    // Format the message using the task from user input and team component
-    const message = formatWebSocketMessage(content, teamConfig.component);
-    console.log("Sending WebSocket message:", message);
-    ws.send(JSON.stringify(message));
-  };
 
   const handleSendMessage = async (content: string) => {
     // Add user message to UI
@@ -225,23 +147,11 @@ const Chat: React.FC = () => {
         throw new Error("Team configuration not available. Please refresh the page.");
       }
 
-      // If WebSocket not connected yet, connect now
-      if (!chatSession.websocket || !chatSession.connected) {
-        const ws = createWebSocket(chatSession.runId);
-        setupWebSocket(ws);
-        
-        // Wait for connection before sending
-        ws.onopen = () => {
-          setChatSession(prev => ({
-            ...prev,
-            websocket: ws,
-            connected: true
-          }));
-          sendMessageViaWebSocket(ws, content);
-        };
-      } else {
-        // WebSocket already connected, send message directly
-        sendMessageViaWebSocket(chatSession.websocket, content);
+      // Send message via WebSocket
+      const sent = sendMessageViaWebSocket(content);
+      
+      if (!sent) {
+        throw new Error("Failed to send message. Please try again.");
       }
       
       // Add loading message

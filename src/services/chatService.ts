@@ -1,5 +1,5 @@
 
-import { Message } from "@/types/chat";
+import { Message, WebSocketMessage } from "@/types/chat";
 
 export interface ApiResponse {
   status: boolean;
@@ -127,28 +127,12 @@ export const fetchTeamConfig = async (teamId: number, userId: string = "guestuse
   }
 };
 
-// Create WebSocket connection
-export const createWebSocket = (runId: number): WebSocket => {
-  const wsUrl = `ws://127.0.0.1:8081/api/ws/runs/${runId}?token=null`;
-  return new WebSocket(wsUrl);
-};
-
-// Format the message to send via WebSocket
-export const formatWebSocketMessage = (task: string, teamComponent: any) => {
+// Format the message to send via WebSocket according to the expected format
+export const formatWebSocketMessage = (task: string, teamComponent: any): WebSocketMessage => {
   return {
     type: "start",
     task: task,
     files: [],
     team_config: teamComponent
-  };
-};
-
-// Legacy method - no longer used but kept for backward compatibility
-export const sendTask = async (task: string): Promise<ApiResponse> => {
-  console.warn('sendTask is deprecated, use WebSocket connection instead');
-  return {
-    status: false,
-    message: 'Method deprecated, use WebSocket connection instead',
-    data: null
   };
 };
