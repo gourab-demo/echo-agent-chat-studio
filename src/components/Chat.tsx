@@ -4,7 +4,7 @@ import ChatHeader from "./ChatHeader";
 import ChatContainer from "./ChatContainer";
 import ChatInput from "./ChatInput";
 import { Message, ChatSession, WebSocketMessage } from "@/types/chat";
-import { createSession, createRun, createWebSocket } from "@/services/chatService";
+import { createSession, createRun, createWebSocket, formatWebSocketMessage } from "@/services/chatService";
 import { useToast } from "@/hooks/use-toast";
 
 const Chat: React.FC = () => {
@@ -170,11 +170,9 @@ const Chat: React.FC = () => {
 
   // Send message via WebSocket
   const sendMessageViaWebSocket = (ws: WebSocket, content: string) => {
-    const message: WebSocketMessage = {
-      type: "user_message",
-      content: content,
-      timestamp: new Date().toISOString(),
-    };
+    // Format the message using the task from user input
+    const message = formatWebSocketMessage(content);
+    console.log("Sending WebSocket message:", message);
     ws.send(JSON.stringify(message));
   };
 
