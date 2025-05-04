@@ -19,10 +19,10 @@ const Index = () => {
         
         <footer className="mt-6 text-center text-sm text-gray-500">
           <p>
-            Connecting to API at <code className="bg-gray-100 px-2 py-0.5 rounded">http://localhost:8081/api</code>
+            Connecting to API at <code className="bg-gray-100 px-2 py-0.5 rounded">http://127.0.0.1:8081/api</code>
           </p>
           <p className="mt-1">
-            WebSocket URL: <code className="bg-gray-100 px-2 py-0.5 rounded">ws://localhost:8081/api/ws/runs/:runId?token=null</code>
+            WebSocket URL: <code className="bg-gray-100 px-2 py-0.5 rounded">ws://127.0.0.1:8081/api/ws/runs/:runId?token=null</code>
           </p>
         </footer>
       </div>

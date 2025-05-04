@@ -4,7 +4,14 @@ import ChatHeader from "./ChatHeader";
 import ChatContainer from "./ChatContainer";
 import ChatInput from "./ChatInput";
 import { Message, ChatSession, WebSocketMessage } from "@/types/chat";
-import { createSession, createRun, createWebSocket, formatWebSocketMessage } from "@/services/chatService";
+import { 
+  createSession, 
+  createRun, 
+  createWebSocket, 
+  formatWebSocketMessage, 
+  fetchTeamConfig,
+  TeamConfig 
+} from "@/services/chatService";
 import { useToast } from "@/hooks/use-toast";
 
 const Chat: React.FC = () => {
@@ -17,6 +24,7 @@ const Chat: React.FC = () => {
     websocket: null,
     connected: false
   });
+  const [teamConfig, setTeamConfig] = useState<TeamConfig | null>(null);
   const { toast } = useToast();
 
   // Initialize chat session
@@ -29,6 +37,12 @@ const Chat: React.FC = () => {
         
         // Step 2: Create run
         const run = await createRun(session.id);
+        
+        // Step 3: Fetch team configuration
+        const teamId = 6; // Hardcoded team ID as per requirements
+        const config = await fetchTeamConfig(teamId);
+        
+        setTeamConfig(config);
         
         setChatSession(prev => ({
           ...prev,
@@ -170,8 +184,13 @@ const Chat: React.FC = () => {
 
   // Send message via WebSocket
   const sendMessageViaWebSocket = (ws: WebSocket, content: string) => {
-    // Format the message using the task from user input
-    const message = formatWebSocketMessage(content);
+    if (!teamConfig) {
+      console.error("Team configuration not available");
+      return;
+    }
+    
+    // Format the message using the task from user input and team component
+    const message = formatWebSocketMessage(content, teamConfig.component);
     console.log("Sending WebSocket message:", message);
     ws.send(JSON.stringify(message));
   };
@@ -191,6 +210,11 @@ const Chat: React.FC = () => {
       // If no runId, we can't establish a WebSocket connection
       if (!chatSession.runId) {
         throw new Error("No active session. Please refresh the page.");
+      }
+
+      // If team config is not available, we can't send the message
+      if (!teamConfig) {
+        throw new Error("Team configuration not available. Please refresh the page.");
       }
 
       // If WebSocket not connected yet, connect now

@@ -7,7 +7,7 @@ export interface Message {
 }
 
 export interface WebSocketMessage {
-  type: "user_message" | "agent_message" | "status" | "result";
+  type: "user_message" | "agent_message" | "status" | "result" | "start";
   content?: string;
   timestamp?: string;
   metadata?: Record<string, any>;
@@ -26,6 +26,9 @@ export interface WebSocketMessage {
     duration?: number;
   };
   status?: string;
+  task?: string;
+  files?: any[];
+  team_config?: any;
 }
 
 export interface ChatSession {

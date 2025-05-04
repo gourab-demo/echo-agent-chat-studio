@@ -23,7 +23,24 @@ export interface Run {
   user_id: string;
 }
 
-const API_URL = 'http://localhost:8081/api'; // Backend API URL
+export interface TeamConfig {
+  created_at: string;
+  user_id: string;
+  version: string;
+  updated_at: string;
+  id: number;
+  component: {
+    provider: string;
+    component_type: string;
+    version: number;
+    component_version: number;
+    description: string;
+    label: string;
+    config: any;
+  };
+}
+
+const API_URL = 'http://127.0.0.1:8081/api'; // Backend API URL
 
 // Create a new session
 export const createSession = async (userId: string = "guestuser@gmail.com"): Promise<Session> => {
@@ -83,182 +100,46 @@ export const createRun = async (sessionId: number, userId: string = "guestuser@g
   }
 };
 
+// Fetch team configuration
+export const fetchTeamConfig = async (teamId: number, userId: string = "guestuser@gmail.com"): Promise<TeamConfig> => {
+  try {
+    const response = await fetch(`${API_URL}/teams/${teamId}?user_id=${encodeURIComponent(userId)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data) {
+      throw new Error('Failed to fetch team configuration');
+    }
+    
+    return data as TeamConfig;
+  } catch (error) {
+    console.error('Error fetching team configuration:', error);
+    throw error;
+  }
+};
+
 // Create WebSocket connection
 export const createWebSocket = (runId: number): WebSocket => {
-  const wsUrl = `ws://localhost:8081/api/ws/runs/${runId}?token=null`;
+  const wsUrl = `ws://127.0.0.1:8081/api/ws/runs/${runId}?token=null`;
   return new WebSocket(wsUrl);
 };
 
 // Format the message to send via WebSocket
-export const formatWebSocketMessage = (task: string) => {
+export const formatWebSocketMessage = (task: string, teamComponent: any) => {
   return {
     type: "start",
     task: task,
     files: [],
-    team_config: {
-      provider: "autogen_agentchat.teams.SelectorGroupChat",
-      component_type: "team",
-      version: 1,
-      component_version: 1,
-      description: "A team with 2 agents - an AssistantAgent (with a calculator tool) and a CriticAgent in a SelectorGroupChat team.",
-      label: "Selector Team_17463",
-      config: {
-        participants: [
-          {
-            provider: "autogen_agentchat.agents.AssistantAgent",
-            component_type: "agent",
-            version: 1,
-            component_version: 1,
-            description: "An agent that provides assistance with tool use.",
-            label: "AssistantAgent",
-            config: {
-              name: "assistant_agent",
-              model_client: {
-                provider: "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
-                component_type: "model",
-                version: 1,
-                component_version: 1,
-                description: "GPT-4o Mini Azure OpenAI model client.",
-                label: "AzureOpenAI GPT-4o-mini",
-                config: {
-                  model: "gpt-4o-mini",
-                  api_key: "5viPcZ9EJEwVIiTURowm6yMdUdQVq2QBhVGT0WFMlJ0M2D7bXrzYJQQJ99BDACYeBjFXJ3w3AAABACOGLjHz",
-                  azure_endpoint: "https://newaiplatform.openai.azure.com/",
-                  azure_deployment: "aiplatform",
-                  api_version: "2025-01-01-preview"
-                }
-              },
-              tools: [
-                {
-                  provider: "autogen_core.tools.FunctionTool",
-                  component_type: "tool",
-                  version: 1,
-                  component_version: 1,
-                  description: "Create custom tools by wrapping standard Python functions.",
-                  label: "FunctionTool",
-                  config: {
-                    source_code: "def calculator(a: float, b: float, operator: str) -> str:\n    try:\n        if operator == \"+\":\n            return str(a + b)\n        elif operator == \"-\":\n            return str(a - b)\n        elif operator == \"*\":\n            return str(a * b)\n        elif operator == \"/\":\n            if b == 0:\n                return \"Error: Division by zero\"\n            return str(a / b)\n        else:\n            return \"Error: Invalid operator. Please use +, -, *, or /\"\n    except Exception as e:\n        return f\"Error: {str(e)}\"\n",
-                    name: "calculator",
-                    description: "A simple calculator that performs basic arithmetic operations",
-                    global_imports: [],
-                    has_cancellation_support: false
-                  }
-                }
-              ],
-              handoffs: [],
-              model_context: {
-                provider: "autogen_core.model_context.UnboundedChatCompletionContext",
-                component_type: "chat_completion_context",
-                version: 1,
-                component_version: 1,
-                description: "An unbounded chat completion context that keeps a view of the all the messages.",
-                label: "UnboundedChatCompletionContext",
-                config: {}
-              },
-              description: "An agent that provides assistance with ability to use tools.",
-              system_message: "You are a helpful assistant. Solve tasks carefully. When done, say TERMINATE.",
-              model_client_stream: false,
-              reflect_on_tool_use: false,
-              tool_call_summary_format: "{result}"
-            }
-          },
-          {
-            provider: "autogen_agentchat.agents.AssistantAgent",
-            component_type: "agent",
-            version: 1,
-            component_version: 1,
-            description: "An agent that provides assistance with tool use.",
-            label: "AssistantAgent",
-            config: {
-              name: "critic_agent",
-              model_client: {
-                provider: "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
-                component_type: "model",
-                version: 1,
-                component_version: 1,
-                description: "GPT-4o Mini Azure OpenAI model client.",
-                label: "AzureOpenAI GPT-4o-mini",
-                config: {
-                  model: "gpt-4o-mini",
-                  api_key: "5viPcZ9EJEwVIiTURowm6yMdUdQVq2QBhVGT0WFMlJ0M2D7bXrzYJQQJ99BDACYeBjFXJ3w3AAABACOGLjHz",
-                  azure_endpoint: "https://newaiplatform.openai.azure.com/",
-                  azure_deployment: "aiplatform",
-                  api_version: "2025-01-01-preview"
-                }
-              },
-              tools: [],
-              handoffs: [],
-              model_context: {
-                provider: "autogen_core.model_context.UnboundedChatCompletionContext",
-                component_type: "chat_completion_context",
-                version: 1,
-                component_version: 1,
-                description: "An unbounded chat completion context that keeps a view of the all the messages.",
-                label: "UnboundedChatCompletionContext",
-                config: {}
-              },
-              description: "an agent that critiques and improves the assistant's output",
-              system_message: "You are a helpful assistant. Critique the assistant's output and suggest improvements.",
-              model_client_stream: false,
-              reflect_on_tool_use: false,
-              tool_call_summary_format: "{result}"
-            }
-          }
-        ],
-        model_client: {
-          provider: "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
-          component_type: "model",
-          version: 1,
-          component_version: 1,
-          description: "GPT-4o Mini Azure OpenAI model client.",
-          label: "AzureOpenAI GPT-4o-mini",
-          config: {
-            model: "gpt-4o-mini",
-            api_key: "5viPcZ9EJEwVIiTURowm6yMdUdQVq2QBhVGT0WFMlJ0M2D7bXrzYJQQJ99BDACYeBjFXJ3w3AAABACOGLjHz",
-            azure_endpoint: "https://newaiplatform.openai.azure.com/",
-            azure_deployment: "aiplatform",
-            api_version: "2025-01-01-preview"
-          }
-        },
-        termination_condition: {
-          provider: "autogen_agentchat.base.OrTerminationCondition",
-          component_type: "termination",
-          version: 1,
-          component_version: 1,
-          label: "OrTerminationCondition",
-          config: {
-            conditions: [
-              {
-                provider: "autogen_agentchat.conditions.TextMentionTermination",
-                component_type: "termination",
-                version: 1,
-                component_version: 1,
-                description: "Terminate the conversation if a specific text is mentioned.",
-                label: "TextMentionTermination",
-                config: {
-                  text: "TERMINATE"
-                }
-              },
-              {
-                provider: "autogen_agentchat.conditions.MaxMessageTermination",
-                component_type: "termination",
-                version: 1,
-                component_version: 1,
-                description: "Terminate the conversation after a maximum number of messages have been exchanged.",
-                label: "MaxMessageTermination",
-                config: {
-                  max_messages: 10,
-                  include_agent_event: false
-                }
-              }
-            ]
-          }
-        },
-        selector_prompt: "You are in a role play game. The following roles are available:\n{roles}.\nRead the following conversation. Then select the next role from {participants} to play. Only return the role.\n\n{history}\n\nRead the above conversation. Then select the next role from {participants} to play. Only return the role.\n",
-        allow_repeated_speaker: false,
-        max_selector_attempts: 3
-      }
-    }
+    team_config: teamComponent
   };
 };
 
